@@ -86,6 +86,7 @@ impl Decoder {
         &mut self,
         packet: &[u8],
         out: &'a mut [S],
+        partial: bool,
     ) -> Result<&'a [S], InvalidData> {
         let mut reader = BitCursor::new(packet)?;
 
@@ -96,7 +97,14 @@ impl Decoder {
         assert!(S::bits() >= self.config.bit_depth);
 
         loop {
-            let tag = reader.read_u8(3)?;
+            let r = reader.read_u8(3);
+            let tag = if let Ok(tag) = r {
+                tag
+            } else if partial {
+                ID_END
+            } else {
+                r?
+            };
 
             match tag {
                 tag @ ID_SCE | tag @ ID_LFE | tag @ ID_CPE => {
